@@ -1,0 +1,15 @@
+/dist/
+/bin/
+*.exe
+bnh
+*.test
+*.out
+coverage.txt
+.env
+.env.bak
+~/.base-node-helper/
+.DS_Store
+.idea/
+.vscode/
+.superpowers/
+.claude/

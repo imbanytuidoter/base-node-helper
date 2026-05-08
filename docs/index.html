@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>base-node-helper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    :root {
+      --bg:        #0a0a0a;
+      --bg-card:   #0f0f0f;
+      --bg-term:   #050505;
+      --border:    #1f1f1f;
+      --text:      #e5e7eb;
+      --text-dim:  #888;
+      --text-mute: #555;
+      --blue:      #3b82f6;
+      --blue-lt:   #60a5fa;
+      --green:     #4ade80;
+      --yellow:    #facc15;
+      --orange:    #fb923c;
+      --purple:    #a78bfa;
+      --red:       #f87171;
+      --font-sans: 'Segoe UI', system-ui, sans-serif;
+      --font-mono: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    code { font-family: var(--font-mono); }
+    a { color: inherit; text-decoration: none; }
+
+    /* ── KEYFRAMES ───────────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes cursorBlink {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0; }
+    }
+
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+      50%      { box-shadow: 0 0 0 6px rgba(74, 222, 128, 0); }
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-12px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── HERO ENTRY (fire on load) ───────────────────────────────── */
+    .hero-tag      { opacity: 0; animation: fadeUp 0.55s ease 0.05s forwards; }
+    .hero h1       { opacity: 0; animation: fadeUp 0.6s  ease 0.18s forwards; }
+    .hero-sub      { opacity: 0; animation: fadeUp 0.55s ease 0.32s forwards; }
+    .install-snippet { opacity: 0; animation: fadeUp 0.55s ease 0.46s forwards; }
+    .hero-stats    { opacity: 0; animation: fadeIn 0.5s  ease 0.64s forwards; }
+
+    /* ── SCROLL REVEAL ───────────────────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(22px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── NAV ─────────────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(13, 13, 13, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      animation: fadeIn 0.4s ease forwards;
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-logo {
+      width: 28px;
+      height: 28px;
+      background: var(--blue);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .nav-logo:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+    }
+
+    .nav-name {
+      color: #fff;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .nav-badge {
+      background: #1e3a5f;
+      color: var(--blue-lt);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 10px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .nav-links a {
+      color: var(--text-dim);
+      font-size: 13px;
+      position: relative;
+      padding-bottom: 2px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 0; height: 1px;
+      background: var(--blue-lt);
+      transition: width 0.25s ease;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+    .nav-links a:hover::after { width: 100%; }
+
+    /* ── SHARED LAYOUT ───────────────────────────────────────────── */
+    .hero, .explainer, .commands, footer {
+      max-width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .section-label {
+      color: var(--text-dim);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+    }
+
+    /* ── HERO ────────────────────────────────────────────────────── */
+    .hero {
+      padding: 64px 28px 56px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      position: relative;
+    }
+
+    /* subtle radial glow behind hero */
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 300px;
+      background: radial-gradient(ellipse at top, rgba(59,130,246,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-tag {
+      color: var(--blue);
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: clamp(30px, 5vw, 46px);
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 18px;
+      /* shimmer gradient on text */
+      background: linear-gradient(90deg, #fff 20%, var(--blue-lt) 50%, #fff 80%);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: fadeUp 0.6s ease 0.18s forwards,
+                 shimmer 4s linear 1s infinite;
+    }
+
+    .hero-sub {
+      color: var(--text-dim);
+      font-size: 16px;
+      max-width: 540px;
+      margin: 0 auto 36px;
+    }
+
+    .hero-sub code {
+      color: var(--blue-lt);
+      background: #1e2a3a;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .install-snippet {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #0d0d0d;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 13px 20px;
+      margin-bottom: 40px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .install-snippet:hover {
+      border-color: #3a3a3a;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.08);
+    }
+
+    .install-prompt {
+      color: var(--green);
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .install-snippet code {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 7px; height: 13px;
+      background: var(--green);
+      border-radius: 1px;
+      animation: cursorBlink 1.1s step-end infinite;
+      vertical-align: -2px;
+      margin-left: 1px;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: 1px solid #444;
+      border-radius: 4px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 3px 8px;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+
+    .copy-btn:hover {
+      border-color: #666;
+      color: var(--text);
+      background: #1a1a1a;
+    }
+
+    .copy-btn.copied {
+      border-color: var(--green);
+      color: var(--green);
+      background: rgba(74, 222, 128, 0.06);
+    }
+
+    .hero-stats {
+      display: inline-flex;
+      align-items: center;
+      gap: 32px;
+    }
+
+    .stat { text-align: center; }
+
+    .stat-num {
+      display: block;
+      color: #fff;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--text-mute);
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .stat-divider {
+      width: 1px; height: 40px;
+      background: #1e1e1e;
+    }
+
+    /* ── HOW IT WORKS ────────────────────────────────────────────── */
+    .explainer {
+      padding: 52px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .step {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 22px;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+      cursor: default;
+    }
+
+    .step:hover {
+      border-color: #2e2e2e;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .step-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .step-num {
+      width: 30px; height: 30px;
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: transform 0.2s;
+    }
+
+    .step:hover .step-num { transform: scale(1.1); }
+
+    .step-num.blue   { background: #1e3a5f; color: var(--blue-lt); }
+    .step-num.green  { background: #1a3320; color: var(--green); }
+    .step-num.orange { background: #2d1a0e; color: var(--orange); }
+
+    .step-cmd { font-size: 13px; font-weight: 600; }
+    .step-cmd.blue   { color: var(--blue-lt); }
+    .step-cmd.green  { color: var(--green); }
+    .step-cmd.orange { color: var(--orange); }
+
+    .step > p {
+      color: var(--text-dim);
+      font-size: 13px;
+      margin-bottom: 14px;
+      line-height: 1.55;
+    }
+
+    .term {
+      background: var(--bg-term);
+      border: 1px solid #111;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .term-line { opacity: 0; animation: slideIn 0.3s ease forwards; }
+    .term-line:nth-child(1) { animation-delay: 0.0s; }
+    .term-line:nth-child(2) { animation-delay: 0.1s; }
+    .term-line:nth-child(3) { animation-delay: 0.2s; }
+    .term-line:nth-child(4) { animation-delay: 0.3s; }
+
+    .term-line.pass { color: var(--green); }
+    .term-line.warn { color: var(--yellow); }
+    .term-line.dim  { color: var(--text-dim); }
+
+    /* ── COMMANDS ────────────────────────────────────────────────── */
+    .commands {
+      padding: 52px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cmd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px;
+    }
+
+    .cmd-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 13px 16px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    }
+
+    .cmd-card:hover {
+      border-color: #2a2a2a;
+      background: #111;
+      transform: translateX(3px);
+    }
+
+    .cmd {
+      font-size: 12px;
+      font-weight: 600;
+      min-width: 110px;
+    }
+
+    .cmd.blue   { color: var(--blue-lt); }
+    .cmd.green  { color: var(--green); }
+    .cmd.orange { color: var(--orange); }
+    .cmd.purple { color: var(--purple); }
+    .cmd.red    { color: var(--red); }
+
+    .cmd-card span {
+      color: var(--text-mute);
+      font-size: 12px;
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────────────── */
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 22px 28px;
+      color: var(--text-mute);
+      font-size: 12px;
+    }
+
+    footer a { transition: color 0.2s; }
+    footer a:hover { color: var(--text-dim); }
+
+    /* ── RESPONSIVE ──────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .nav-links a:not(:last-child) { display: none; }
+      .hero { padding: 48px 20px 40px; }
+      .install-snippet { flex-wrap: wrap; justify-content: center; }
+      .explainer, .commands { padding: 40px 20px; }
+      footer { padding: 18px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <div class="nav-brand">
+        <div class="nav-logo">B</div>
+        <span class="nav-name">base-node-helper</span>
+        <span class="nav-badge">v0.2.0</span>
+      </div>
+      <div class="nav-links">
+        <a href="#install">Installation</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#commands">Commands</a>
+        <a href="https://github.com/imbanytuidoter/base-node-helper" target="_blank" rel="noopener">GitHub ↗</a>
+        <a href="https://x.com/imbanytui" target="_blank" rel="noopener">X ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="install" class="hero">
+    <div class="hero-tag">Base Blockchain · Node Operations</div>
+    <h1>Safe wrapper<br>for Base Node</h1>
+    <p class="hero-sub">
+      Replaces manual <code>docker compose</code> with one command.
+      Automatic preflight checks, safe shutdown, monitoring and notifications.
+    </p>
+    <div class="install-snippet">
+      <span class="install-prompt">$</span>
+      <code id="install-cmd">curl -fsSL https://base.sh/install | sh</code><span class="cursor"></span>
+      <button class="copy-btn" data-copy="curl -fsSL https://base.sh/install | sh">copy</button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-num" data-count="8">0</span>
+        <span class="stat-label">preflight checks</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-num" data-count="6">0</span>
+        <span class="stat-label">commands</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-num" data-count="3">0</span>
+        <span class="stat-label">platforms</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works" class="explainer">
+    <div class="section-label reveal">How it works</div>
+    <div class="steps">
+
+      <div class="step reveal">
+        <div class="step-head">
+          <div class="step-num blue">1</div>
+          <code class="step-cmd blue">bnh doctor</code>
+        </div>
+        <p>Checks 8 conditions before launch: Docker running, ports free, disk speed, NTP sync, peer count.</p>
+        <div class="term">
+          <div class="term-line pass">[PASS] docker running</div>
+          <div class="term-line pass">[PASS] ports 30303, 9222 free</div>
+          <div class="term-line warn">[WARN] disk latency 210µs</div>
+          <div class="term-line pass">[PASS] ntp offset &lt; 1s</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-head">
+          <div class="step-num green">2</div>
+          <code class="step-cmd green">bnh start</code>
+        </div>
+        <p>Runs all preflight checks first. Launches the node only when all checks are PASS or WARN. Blocks on FAIL.</p>
+        <div class="term">
+          <div class="term-line dim">→ running preflight checks…</div>
+          <div class="term-line dim">→ docker compose up -d</div>
+          <div class="term-line pass">✓ node started</div>
+        </div>
+      </div>
+
+      <div class="step reveal">
+        <div class="step-head">
+          <div class="step-num orange">3</div>
+          <code class="step-cmd orange">bnh monitor</code>
+        </div>
+        <p>Polls node health every 60 s. Sends Discord or webhook notification on state transitions.</p>
+        <div class="term">
+          <div class="term-line dim">[10:42] syncing=true low_peers=false</div>
+          <div class="term-line dim">[10:43] syncing=true low_peers=false</div>
+          <div class="term-line pass">[10:44] syncing=false low_peers=false</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- COMMANDS -->
+  <section id="commands" class="commands">
+    <div class="section-label reveal">All commands</div>
+    <div class="cmd-grid">
+      <div class="cmd-card reveal">
+        <code class="cmd blue">bnh init</code>
+        <span>Interactive profile setup</span>
+      </div>
+      <div class="cmd-card reveal">
+        <code class="cmd green">bnh start</code>
+        <span>Preflight + docker compose up</span>
+      </div>
+      <div class="cmd-card reveal">
+        <code class="cmd">bnh stop</code>
+        <span>Graceful shutdown (300 s timeout)</span>
+      </div>
+      <div class="cmd-card reveal">
+        <code class="cmd">bnh status</code>
+        <span>Container state</span>
+      </div>
+      <div class="cmd-card reveal">
+        <code class="cmd blue">bnh doctor</code>
+        <span>Full preflight report</span>
+      </div>
+      <div class="cmd-card reveal">
+        <code class="cmd orange">bnh monitor</code>
+        <span>Polling loop + Discord notifications</span>
+      </div>
+      <div class="cmd-card reveal">
+        <code class="cmd purple">bnh upgrade</code>
+        <span>git pull + optional restart</span>
+      </div>
+      <div class="cmd-card reveal">
+        <code class="cmd red">bnh down</code>
+        <span>--force --i-understand (dangerous)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>base-node-helper v0.2.0</span>
+    <div style="display:flex;gap:20px">
+      <a href="https://x.com/imbanytui" target="_blank" rel="noopener">X ↗</a>
+      <a href="https://github.com/imbanytuidoter/base-node-helper" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </footer>
+
+  <script>
+    // ── Scroll reveal with stagger ──────────────────────────────
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const siblings = [...entry.target.parentElement.querySelectorAll('.reveal')];
+        const idx = siblings.indexOf(entry.target);
+        entry.target.style.transitionDelay = `${idx * 90}ms`;
+        entry.target.classList.add('visible');
+        io.unobserve(entry.target);
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+    // ── Counter animation ───────────────────────────────────────
+    function countUp(el, target, duration) {
+      const start = performance.now();
+      const tick = (now) => {
+        const t = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = Math.round(eased * target);
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }
+
+    const statsObs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        document.querySelectorAll('[data-count]').forEach((el, i) => {
+          setTimeout(() => countUp(el, +el.dataset.count, 900), i * 120);
+        });
+        statsObs.disconnect();
+      });
+    }, { threshold: 0.5 });
+
+    const statsEl = document.querySelector('.hero-stats');
+    if (statsEl) statsObs.observe(statsEl);
+
+    // ── Copy button ─────────────────────────────────────────────
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.copy).then(() => {
+          const orig = btn.textContent;
+          btn.textContent = 'Copied!';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 2000);
+        });
+      });
+    });
+
+    // ── Re-trigger terminal line animations on step hover ───────
+    document.querySelectorAll('.step').forEach(step => {
+      step.addEventListener('mouseenter', () => {
+        step.querySelectorAll('.term-line').forEach(line => {
+          line.style.animation = 'none';
+          void line.offsetHeight; // reflow
+          line.style.animation = '';
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>
