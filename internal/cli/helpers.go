@@ -11,6 +11,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// mustAbsDir returns dir if it is an absolute path, error otherwise.
+// This prevents privilege-escalation scenarios where bnh is invoked with a
+// relative or attacker-controlled --config path.
+func mustAbsDir(dir string) error {
+	if !filepath.IsAbs(dir) {
+		return fmt.Errorf("config directory must be an absolute path, got %q", dir)
+	}
+	return nil
+}
+
 type Globals struct {
 	BaseDir string
 	Profile string
@@ -20,6 +30,11 @@ func resolveGlobals(cmd *cobra.Command) (*Globals, error) {
 	profile, _ := cmd.Root().PersistentFlags().GetString("profile")
 	override, _ := cmd.Root().PersistentFlags().GetString("config")
 	if override != "" {
+		// [MED] insecure-default: reject relative paths to prevent
+		// privilege escalation via attacker-controlled --config argument.
+		if err := mustAbsDir(override); err != nil {
+			return nil, err
+		}
 		return &Globals{BaseDir: override, Profile: profile}, nil
 	}
 	d, err := config.DefaultBaseDir()

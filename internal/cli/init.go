@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/imbanytuidoter/base-node-helper/internal/config"
+	"github.com/imbanytuidoter/base-node-helper/internal/log"
 	"github.com/imbanytuidoter/base-node-helper/internal/rpc"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -41,7 +42,12 @@ func runInit(in io.Reader, out io.Writer, baseDir string, offline bool) error {
 		} else {
 			fmt.Fprintf(out, "%s: ", prompt)
 		}
-		s, _ := r.ReadString('\n')
+		// [LOW] error-ignored: io.EOF with partial content is acceptable
+		// (piped input ending without newline); other errors abort cleanly.
+		s, err := r.ReadString('\n')
+		if err != nil && len(s) == 0 {
+			return def
+		}
 		s = strings.TrimSpace(s)
 		if s == "" {
 			return def
@@ -83,7 +89,8 @@ func runInit(in io.Reader, out io.Writer, baseDir string, offline bool) error {
 		if err == nil {
 			id, err := cl.ChainID(ctx)
 			if err != nil {
-				fmt.Fprintf(out, "  WARN: chainId failed: %v (continuing)\n", err)
+				// [MED] info-leak: redact URL from error message (may contain API key).
+				fmt.Fprintf(out, "  WARN: chainId failed: %s (continuing)\n", log.Redact(err.Error()))
 			} else {
 				fmt.Fprintf(out, "  ✓ chainId=%d\n", id)
 			}
@@ -98,7 +105,7 @@ func runInit(in io.Reader, out io.Writer, baseDir string, offline bool) error {
 		if err == nil {
 			gt, err := bc.Genesis(ctx)
 			if err != nil {
-				fmt.Fprintf(out, "  WARN: genesis failed: %v (continuing)\n", err)
+				fmt.Fprintf(out, "  WARN: genesis failed: %s (continuing)\n", log.Redact(err.Error()))
 			} else {
 				fmt.Fprintf(out, "  ✓ genesis_time=%s\n", gt)
 			}

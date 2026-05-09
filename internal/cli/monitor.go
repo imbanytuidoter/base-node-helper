@@ -56,7 +56,12 @@ func runMonitor(cmd *cobra.Command, interval time.Duration, once bool) error {
 	var l1 *rpc.L1
 	if env, err := readRepoEnv(cfg.BaseNodeRepo); err == nil {
 		if v := env["OP_NODE_L1_ETH_RPC"]; v != "" {
-			l1, _ = rpc.NewL1(v)
+			var l1Err error
+			l1, l1Err = rpc.NewL1(v)
+			// [HIGH] error-ignored: log so operator knows sync/peer checks are disabled.
+			if l1Err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "warning: invalid L1 RPC URL %q: %v (sync/peer checks disabled)\n", v, l1Err)
+			}
 		}
 	}
 
@@ -102,16 +107,24 @@ func runMonitor(cmd *cobra.Command, interval time.Duration, once bool) error {
 		// doesn't cause them to silently fail after slow RPC calls.
 		notifyCtx, notifyCancel := context.WithTimeout(cmd.Context(), 10*time.Second)
 		defer notifyCancel()
+		// [MED] error-ignored: log notification failures so operators know
+		// their alerting is broken before it silently stops working.
 		if (first || !prev.containersDown) && cur.containersDown {
-			_ = notify.Send(notifyCtx, cfg.Notifications, "crit", "Node containers down",
-				"One or more containers are not in running state")
+			if err := notify.Send(notifyCtx, cfg.Notifications, "crit", "Node containers down",
+				"One or more containers are not in running state"); err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "notify error (crit): %v\n", err)
+			}
 		}
 		if (first || !prev.syncing) && cur.syncing {
-			_ = notify.Send(notifyCtx, cfg.Notifications, "warn", "Node syncing", "L1 node reports eth_syncing=true")
+			if err := notify.Send(notifyCtx, cfg.Notifications, "warn", "Node syncing", "L1 node reports eth_syncing=true"); err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "notify error (warn/syncing): %v\n", err)
+			}
 		}
 		if (first || !prev.lowPeers) && cur.lowPeers {
-			_ = notify.Send(notifyCtx, cfg.Notifications, "warn", "Low peer count",
-				fmt.Sprintf("Peer count below minimum %d", cfg.Monitor.PeerCountMin))
+			if err := notify.Send(notifyCtx, cfg.Notifications, "warn", "Low peer count",
+				fmt.Sprintf("Peer count below minimum %d", cfg.Monitor.PeerCountMin)); err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "notify error (warn/peers): %v\n", err)
+			}
 		}
 
 		prev = cur

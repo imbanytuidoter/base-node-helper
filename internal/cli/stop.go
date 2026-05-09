@@ -54,7 +54,8 @@ func newStopCmd() *cobra.Command {
 			}); err != nil {
 				return err
 			}
-			psCtx, psCancel := context.WithTimeout(context.Background(), 10*time.Second)
+			// [MED] context: use cmd.Context() so Ctrl-C cancels this too.
+			psCtx, psCancel := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer psCancel()
 			containers, err := c.PS(psCtx, cfg.BaseNodeRepo)
 			if err == nil {

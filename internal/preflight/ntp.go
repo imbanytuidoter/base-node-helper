@@ -74,7 +74,9 @@ func queryNTP(ctx context.Context, addr string, timeout time.Duration) (time.Dur
 	}
 	t4 := time.Now()
 
-	const ntpEpochOffset = 2208988800
+	// [LOW] explicit int64 to prevent misinterpretation on 32-bit platforms
+	// (2208988800 > MaxInt32) and to make the type clear to future readers.
+	const ntpEpochOffset int64 = 2208988800
 	secs := binary.BigEndian.Uint32(resp[40:44])
 	frac := binary.BigEndian.Uint32(resp[44:48])
 	if secs == 0 {

@@ -140,6 +140,30 @@ func TestResolveGlobalsOverride(t *testing.T) {
 	}
 }
 
+// TestResolveGlobalsRelativeConfigRejected verifies that a relative --config
+// path is rejected to prevent privilege-escalation attacks.
+func TestResolveGlobalsRelativeConfigRejected(t *testing.T) {
+	cmd := NewRoot()
+	_ = cmd.ParseFlags([]string{"--config", "relative/path"})
+	_, err := resolveGlobals(cmd)
+	if err == nil {
+		t.Error("expected error for relative --config path")
+	}
+}
+
+func TestMustAbsDirRejectsRelative(t *testing.T) {
+	if err := mustAbsDir("relative/dir"); err == nil {
+		t.Error("mustAbsDir: expected error for relative path")
+	}
+}
+
+func TestMustAbsDirAcceptsAbsolute(t *testing.T) {
+	dir := t.TempDir()
+	if err := mustAbsDir(dir); err != nil {
+		t.Errorf("mustAbsDir: unexpected error for absolute path: %v", err)
+	}
+}
+
 func TestBuildPreflightIncludesOptionals(t *testing.T) {
 	dir := t.TempDir()
 	cfg := &config.Profile{

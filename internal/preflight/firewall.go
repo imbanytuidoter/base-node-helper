@@ -37,7 +37,12 @@ func (f *FirewallCheck) Run(ctx context.Context) (Result, error) {
 		// Neither available — advisory warning, not a hard failure
 		return Result{Status: Warn, Message: "could not inspect firewall (need root or iptables/nft not available). Verify port 30303 inbound manually."}, nil
 	case "darwin":
-		out, _ := exec.CommandContext(ctx, "/usr/libexec/ApplicationFirewall/socketfilterfw", "--getglobalstate").CombinedOutput()
+		// [LOW] insecure-default: if socketfilterfw is absent/fails, return Warn
+		// rather than silently assuming the firewall is off.
+		out, err := exec.CommandContext(ctx, "/usr/libexec/ApplicationFirewall/socketfilterfw", "--getglobalstate").CombinedOutput()
+		if err != nil {
+			return Result{Status: Warn, Message: "macOS firewall state could not be determined (socketfilterfw error). Verify port 30303 inbound manually."}, nil
+		}
 		if strings.Contains(string(out), "enabled") {
 			return Result{Status: Warn, Message: "macOS firewall is enabled. Allow inbound for the docker process or expose ports via NAT/UPnP."}, nil
 		}

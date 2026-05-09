@@ -68,7 +68,9 @@ func (c *L1) call(ctx context.Context, method string, params ...interface{}) (js
 	}
 	var r rpcResp
 	if err := json.Unmarshal(raw, &r); err != nil {
-		return nil, fmt.Errorf("decode: %w (body: %s)", err, string(raw))
+		// [CRIT] info-leak: do NOT include raw body in error — it may contain
+		// API keys echoed from auth error responses or URLs with secrets.
+		return nil, fmt.Errorf("decode rpc response: %w", err)
 	}
 	if r.Error != nil {
 		return nil, fmt.Errorf("rpc error %d: %s", r.Error.Code, r.Error.Message)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"sort"
@@ -41,10 +42,18 @@ type DiskSpeedCheck struct {
 
 func (d *DiskSpeedCheck) Name() string { return "disk speed (advisory)" }
 
+// maxSampleBytes caps the disk benchmark file size to prevent OOM/DoS from
+// a crafted profile with an unreasonably large sample_bytes value.
+const maxSampleBytes int64 = 1 << 30 // 1 GiB
+
 func (d *DiskSpeedCheck) Run(ctx context.Context) (Result, error) {
 	sampleBytes := d.SampleBytes
 	if sampleBytes == 0 {
 		sampleBytes = 256 << 20
+	}
+	// [MED] oom: cap sample size so a crafted profile cannot exhaust disk/memory.
+	if sampleBytes > maxSampleBytes {
+		sampleBytes = maxSampleBytes
 	}
 	p99WarnNs := d.P99WarnNs
 	if p99WarnNs == 0 {
@@ -79,13 +88,14 @@ func (d *DiskSpeedCheck) Run(ctx context.Context) (Result, error) {
 		os.Remove(f.Name())
 		return Result{Status: Warn, Message: fmt.Sprintf("fsync failed: %v", err)}, nil
 	}
-	f.Close()
 
-	rf, err := os.Open(f.Name())
-	if err != nil {
-		return Result{Status: Warn, Message: err.Error()}, nil
+	// [MED] toctou: rewind the already-open file descriptor instead of
+	// re-opening by name, eliminating the race window where an adversary
+	// could swap the file between Close and Open.
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		f.Close()
+		return Result{Status: Warn, Message: fmt.Sprintf("seek failed: %v", err)}, nil
 	}
-	defer rf.Close()
 
 	const samples = 256
 	maxOff := big.NewInt(sampleBytes - 4096)
@@ -94,7 +104,7 @@ func (d *DiskSpeedCheck) Run(ctx context.Context) (Result, error) {
 		n, _ := rand.Int(rand.Reader, maxOff)
 		off := n.Int64()
 		t0 := time.Now()
-		_, err := rf.ReadAt(buf, off)
+		_, err := f.ReadAt(buf, off)
 		dt := time.Since(t0).Nanoseconds()
 		if err != nil {
 			continue
@@ -104,6 +114,7 @@ func (d *DiskSpeedCheck) Run(ctx context.Context) (Result, error) {
 		}
 		latencies = append(latencies, dt)
 	}
+	f.Close()
 	if len(latencies) == 0 {
 		return Result{Status: Warn, Message: "no successful reads during benchmark"}, nil
 	}

@@ -94,9 +94,15 @@ func interpolateAll(p *Profile) error {
 	return nil
 }
 
+// validProfileName enforces a strict allow-list to prevent path traversal,
+// null-byte injection, and Windows reserved-name attacks.
+var validProfileName = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,64}$`)
+
 func LoadProfile(fs afero.Fs, baseDir, name string) (*Profile, error) {
-	if strings.ContainsAny(name, `/\`) || name == ".." || strings.Contains(name, "..") {
-		return nil, fmt.Errorf("invalid profile name %q", name)
+	// [CRIT] path-traversal: use allow-list instead of deny-list so that
+	// null bytes, Unicode overrides, and OS-reserved names are all rejected.
+	if !validProfileName.MatchString(name) {
+		return nil, fmt.Errorf("invalid profile name %q: only [a-zA-Z0-9_-] (1-64 chars) allowed", name)
 	}
 	path, err := safeProfilePath(baseDir, name)
 	if err != nil {
@@ -120,8 +126,8 @@ func LoadProfile(fs afero.Fs, baseDir, name string) (*Profile, error) {
 }
 
 func SaveProfile(fs afero.Fs, baseDir, name string, p *Profile) error {
-	if strings.ContainsAny(name, `/\`) || name == ".." || strings.Contains(name, "..") {
-		return fmt.Errorf("invalid profile name %q", name)
+	if !validProfileName.MatchString(name) {
+		return fmt.Errorf("invalid profile name %q: only [a-zA-Z0-9_-] (1-64 chars) allowed", name)
 	}
 	path, err := safeProfilePath(baseDir, name)
 	if err != nil {
