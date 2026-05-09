@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,7 +30,7 @@ func TestInitWritesValidProfile(t *testing.T) {
 	}, "\n") + "\n")
 
 	var out bytes.Buffer
-	if err := runInit(in, &out, dir, true); err != nil {
+	if err := runInit(context.Background(), in, &out, dir, true); err != nil {
 		t.Fatalf("runInit: %v", err)
 	}
 	cfg, err := config.LoadProfile(afero.NewOsFs(), dir, "default")

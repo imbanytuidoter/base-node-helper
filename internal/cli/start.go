@@ -52,7 +52,7 @@ func runStart(cmd *cobra.Command, skipPreflight bool) error {
 	ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Minute)
 	defer cancel()
 
-	inv, err := compose.Detect()
+	inv, err := compose.Detect(cmd.Context())
 	if err != nil {
 		return err
 	}

@@ -27,14 +27,16 @@ func newInitCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runInit(cmd.InOrStdin(), cmd.OutOrStdout(), gf.BaseDir, offline)
+			// [LOW] Finding 10: pass cmd.Context() so Ctrl-C during RPC validation
+			// cancels the outbound request rather than waiting for the 5s timeout.
+			return runInit(cmd.Context(), cmd.InOrStdin(), cmd.OutOrStdout(), gf.BaseDir, offline)
 		},
 	}
 	cmd.Flags().BoolVar(&offline, "offline", false, "skip live RPC/Beacon validation")
 	return cmd
 }
 
-func runInit(in io.Reader, out io.Writer, baseDir string, offline bool) error {
+func runInit(ctx context.Context, in io.Reader, out io.Writer, baseDir string, offline bool) error {
 	r := bufio.NewReader(in)
 	ask := func(prompt, def string) string {
 		if def != "" {
@@ -84,12 +86,15 @@ func runInit(in io.Reader, out io.Writer, baseDir string, offline bool) error {
 
 	l1RPC := ask("L1 RPC URL (or blank to skip)", "")
 	if l1RPC != "" && !offline {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		rpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		cl, err := rpc.NewL1(l1RPC)
-		if err == nil {
-			id, err := cl.ChainID(ctx)
+		if err != nil {
+			// [LOW] Finding 8: warn explicitly so invalid URLs don't silently pass.
+			fmt.Fprintf(out, "  WARN: RPC URL rejected: %v (continuing)\n", err)
+		} else {
+			id, err := cl.ChainID(rpcCtx)
 			if err != nil {
-				// [MED] info-leak: redact URL from error message (may contain API key).
+				// [MED] info-leak: redact URL from error (may contain API key).
 				fmt.Fprintf(out, "  WARN: chainId failed: %s (continuing)\n", log.Redact(err.Error()))
 			} else {
 				fmt.Fprintf(out, "  ✓ chainId=%d\n", id)
@@ -100,10 +105,12 @@ func runInit(in io.Reader, out io.Writer, baseDir string, offline bool) error {
 
 	beacon := ask("L1 Beacon URL (or blank to skip)", "")
 	if beacon != "" && !offline {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		bcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		bc, err := rpc.NewBeacon(beacon)
-		if err == nil {
-			gt, err := bc.Genesis(ctx)
+		if err != nil {
+			fmt.Fprintf(out, "  WARN: Beacon URL rejected: %v (continuing)\n", err)
+		} else {
+			gt, err := bc.Genesis(bcCtx)
 			if err != nil {
 				fmt.Fprintf(out, "  WARN: genesis failed: %s (continuing)\n", log.Redact(err.Error()))
 			} else {

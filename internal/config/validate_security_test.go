@@ -81,17 +81,17 @@ func TestValidateBaseNodeRepoEmptyRejected(t *testing.T) {
 
 func TestValidateStopTimeoutTooLargeRejected(t *testing.T) {
 	p := baseValidProfile()
-	p.StopTimeoutSeconds = maxStopTimeoutSeconds + 1
+	p.StopTimeoutSeconds = MaxStopTimeoutSeconds + 1
 	if err := Validate(p); err == nil {
-		t.Errorf("expected error for stop_timeout_seconds > %d", maxStopTimeoutSeconds)
+		t.Errorf("expected error for stop_timeout_seconds > %d", MaxStopTimeoutSeconds)
 	}
 }
 
 func TestValidateStopTimeoutMaxAccepted(t *testing.T) {
 	p := baseValidProfile()
-	p.StopTimeoutSeconds = maxStopTimeoutSeconds
+	p.StopTimeoutSeconds = MaxStopTimeoutSeconds
 	if err := Validate(p); err != nil {
-		t.Errorf("stop_timeout_seconds=%d should be accepted: %v", maxStopTimeoutSeconds, err)
+		t.Errorf("stop_timeout_seconds=%d should be accepted: %v", MaxStopTimeoutSeconds, err)
 	}
 }
 

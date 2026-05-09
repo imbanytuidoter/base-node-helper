@@ -40,7 +40,7 @@ This command exists for repair scenarios. For routine shutdowns, use 'stop'.`,
 			}
 			defer lk.Release()
 
-			inv, err := compose.Detect()
+			inv, err := compose.Detect(cmd.Context())
 			if err != nil {
 				return err
 			}

@@ -32,7 +32,9 @@ func (execRunner) run(ctx context.Context, prog string, args ...string) ([]byte,
 }
 
 // Detect returns the preferred Compose invocation (v2 over v1).
-func Detect() (Invocation, error) { return detectWith(context.Background(), execRunner{}) }
+// Pass cmd.Context() so that Ctrl-C cancels the docker version probe
+// rather than always waiting the full 5-second detectWith timeout.
+func Detect(ctx context.Context) (Invocation, error) { return detectWith(ctx, execRunner{}) }
 
 func detectWith(ctx context.Context, r runner) (Invocation, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)

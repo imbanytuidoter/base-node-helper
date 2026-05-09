@@ -6,6 +6,13 @@ export LC_ALL=C
 
 REPO="imbanytuidoter/base-node-helper"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+
+# [MED] Finding 6: require INSTALL_DIR to be an absolute path to prevent
+# an attacker-controlled environment from placing the binary in e.g. cron.d.
+case "$INSTALL_DIR" in
+  /*) ;;
+  *) echo "ERROR: INSTALL_DIR must be an absolute path, got: $INSTALL_DIR" >&2; exit 1 ;;
+esac
 COSIGN_OIDC_ISSUER="https://token.actions.githubusercontent.com"
 COSIGN_IDENTITY_RE="https://github.com/imbanytuidoter/base-node-helper/.github/workflows/release.yml@refs/tags/v"
 ALLOW_NO_COSIGN="${ALLOW_NO_COSIGN:-0}"

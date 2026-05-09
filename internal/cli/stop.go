@@ -30,6 +30,12 @@ func newStopCmd() *cobra.Command {
 			}
 			t := cfg.StopTimeoutSeconds
 			if timeoutOverride > 0 {
+				// [MED] Finding 4: --timeout flag must be bounded like the profile field,
+				// otherwise large values cause time.Duration overflow → immediate ctx cancel.
+				if timeoutOverride > config.MaxStopTimeoutSeconds {
+					return fmt.Errorf("--timeout %d exceeds maximum allowed %d seconds",
+						timeoutOverride, config.MaxStopTimeoutSeconds)
+				}
 				t = timeoutOverride
 			}
 			lk, err := lockfile.AcquireExclusive(filepath.Join(gf.BaseDir, ".lock"), 5*time.Second)
@@ -38,7 +44,7 @@ func newStopCmd() *cobra.Command {
 			}
 			defer lk.Release()
 
-			inv, err := compose.Detect()
+			inv, err := compose.Detect(cmd.Context())
 			if err != nil {
 				return err
 			}

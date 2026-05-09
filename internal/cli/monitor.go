@@ -29,6 +29,10 @@ func newMonitorCmd() *cobra.Command {
 		Short: "Poll node health and send notifications on threshold violations",
 		Long:  "Continuously polls docker compose ps, L1 sync status, and peer count. Sends notifications (configured in profile) on state transitions. Ctrl-C to stop.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			// [LOW] Finding 12: prevent spin-loop from --interval 0 or negative.
+			if interval < 10 {
+				return fmt.Errorf("--interval must be at least 10 seconds, got %d", interval)
+			}
 			return runMonitor(cmd, time.Duration(interval)*time.Second, once)
 		},
 	}
@@ -47,7 +51,7 @@ func runMonitor(cmd *cobra.Command, interval time.Duration, once bool) error {
 		return err
 	}
 
-	inv, err := compose.Detect()
+	inv, err := compose.Detect(cmd.Context())
 	if err != nil {
 		return err
 	}
@@ -58,9 +62,10 @@ func runMonitor(cmd *cobra.Command, interval time.Duration, once bool) error {
 		if v := env["OP_NODE_L1_ETH_RPC"]; v != "" {
 			var l1Err error
 			l1, l1Err = rpc.NewL1(v)
-			// [HIGH] error-ignored: log so operator knows sync/peer checks are disabled.
+			// [MED] Finding 3: omit the raw URL from the message — it may contain
+			// an embedded API key (Alchemy /v2/<key>, Infura /v3/<key> etc.).
 			if l1Err != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "warning: invalid L1 RPC URL %q: %v (sync/peer checks disabled)\n", v, l1Err)
+				fmt.Fprintf(cmd.ErrOrStderr(), "warning: invalid OP_NODE_L1_ETH_RPC URL: %v (sync/peer checks disabled)\n", l1Err)
 			}
 		}
 	}

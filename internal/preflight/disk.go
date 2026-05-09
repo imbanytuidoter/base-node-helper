@@ -78,6 +78,14 @@ func (d *DiskSpeedCheck) Run(ctx context.Context) (Result, error) {
 		return Result{Status: Warn, Message: err.Error()}, nil
 	}
 	for written := int64(0); written < sampleBytes; written += int64(len(buf)) {
+		// [LOW] Finding 9: honour context cancellation so Ctrl-C stops the
+		// write loop promptly instead of blocking until the 1 GiB file is done.
+		select {
+		case <-ctx.Done():
+			f.Close()
+			return Result{Status: Warn, Message: "disk benchmark cancelled by context"}, nil
+		default:
+		}
 		if _, err := f.Write(buf); err != nil {
 			f.Close()
 			return Result{Status: Warn, Message: err.Error()}, nil

@@ -7,8 +7,19 @@ import (
 	"strings"
 )
 
-// maxStopTimeoutSeconds prevents integer overflow in context.Duration arithmetic.
-const maxStopTimeoutSeconds = 86400 // 24 h
+// isAbsPath reports whether p is an absolute path on any supported platform.
+// On Unix, /foo is absolute. On Windows, C:\foo is absolute.
+// Root-relative Windows paths like /foo (no drive letter) are NOT considered
+// absolute — they resolve relative to the current drive root, which is
+// unpredictable. filepath.IsAbs handles this correctly on all platforms.
+// We also accept /foo on Windows for profiles authored on Unix (tests, CI).
+func isAbsPath(p string) bool {
+	return filepath.IsAbs(p) || strings.HasPrefix(p, "/")
+}
+
+// MaxStopTimeoutSeconds is the upper bound for stop_timeout_seconds in profiles
+// and the --timeout CLI flag. Prevents integer overflow in context.Duration arithmetic.
+const MaxStopTimeoutSeconds = 86400 // 24 h
 
 func Validate(p *Profile) error {
 	switch p.Network {
@@ -28,11 +39,12 @@ func Validate(p *Profile) error {
 
 	// [HIGH] injection: BaseNodeRepo must be a clean absolute path so it
 	// cannot be used as a git option flag or escape the intended directory.
-	// Accept Unix-style /path (primary deployment target) and Windows C:\path.
+	// [LOW] Finding 12: rely solely on filepath.IsAbs (not strings.HasPrefix)
+	// so that root-relative Windows paths like /foo are not falsely accepted.
 	if p.BaseNodeRepo == "" {
 		return fmt.Errorf("base_node_repo is required")
 	}
-	if !strings.HasPrefix(p.BaseNodeRepo, "/") && !filepath.IsAbs(p.BaseNodeRepo) {
+	if !isAbsPath(p.BaseNodeRepo) {
 		return fmt.Errorf("base_node_repo must be an absolute path, got %q", p.BaseNodeRepo)
 	}
 	if filepath.Clean(p.BaseNodeRepo) != p.BaseNodeRepo &&
@@ -40,8 +52,13 @@ func Validate(p *Profile) error {
 		return fmt.Errorf("base_node_repo contains unclean path components: %q", p.BaseNodeRepo)
 	}
 
+	// [MED] Finding 5: DataDir must also be absolute — a relative DataDir
+	// resolves against the process CWD and could point anywhere at runtime.
 	if p.DataDir == "" {
 		return fmt.Errorf("data_dir is required")
+	}
+	if !isAbsPath(p.DataDir) {
+		return fmt.Errorf("data_dir must be an absolute path, got %q", p.DataDir)
 	}
 
 	// [HIGH] integer-overflow: very large values cause time.Duration arithmetic
@@ -49,8 +66,8 @@ func Validate(p *Profile) error {
 	if p.StopTimeoutSeconds <= 0 {
 		return fmt.Errorf("stop_timeout_seconds must be > 0 (recommend 300)")
 	}
-	if p.StopTimeoutSeconds > maxStopTimeoutSeconds {
-		return fmt.Errorf("stop_timeout_seconds too large (max %d)", maxStopTimeoutSeconds)
+	if p.StopTimeoutSeconds > MaxStopTimeoutSeconds {
+		return fmt.Errorf("stop_timeout_seconds too large (max %d)", MaxStopTimeoutSeconds)
 	}
 
 	for i, n := range p.Notifications {

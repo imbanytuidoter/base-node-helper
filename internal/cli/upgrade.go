@@ -47,7 +47,7 @@ func runUpgrade(cmd *cobra.Command, restart bool) error {
 	ctx, cancel := context.WithTimeout(cmd.Context(), 2*time.Minute)
 	defer cancel()
 
-	inv, err := compose.Detect()
+	inv, err := compose.Detect(cmd.Context())
 	if err != nil {
 		return err
 	}

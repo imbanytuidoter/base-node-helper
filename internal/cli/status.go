@@ -32,7 +32,7 @@ func newStatusCmd() *cobra.Command {
 				return fmt.Errorf("could not acquire shared lock: %w", err)
 			}
 			defer lk.Release()
-			inv, err := compose.Detect()
+			inv, err := compose.Detect(cmd.Context())
 			if err != nil {
 				return err
 			}
