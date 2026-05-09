@@ -93,7 +93,7 @@ func (d *DiskSpeedCheck) Run(ctx context.Context) (Result, error) {
 	}
 	if err := f.Sync(); err != nil {
 		f.Close()
-		os.Remove(f.Name())
+		// defer os.Remove already handles cleanup; no need for explicit call here.
 		return Result{Status: Warn, Message: fmt.Sprintf("fsync failed: %v", err)}, nil
 	}
 

@@ -86,29 +86,32 @@ func runInit(ctx context.Context, in io.Reader, out io.Writer, baseDir string, o
 
 	l1RPC := ask("L1 RPC URL (or blank to skip)", "")
 	if l1RPC != "" && !offline {
+		// [LOW-F5] defer cancel() so a panic cannot leak the timer goroutine.
 		rpcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
 		cl, err := rpc.NewL1(l1RPC)
 		if err != nil {
-			// [LOW] Finding 8: warn explicitly so invalid URLs don't silently pass.
-			fmt.Fprintf(out, "  WARN: RPC URL rejected: %v (continuing)\n", err)
+			// [MED-F1] Redact the error: NewL1 embeds rawURL which may contain
+			// an API key (e.g. ws://host/v2/SECRETKEY).
+			fmt.Fprintf(out, "  WARN: RPC URL rejected: %s (continuing)\n", log.Redact(err.Error()))
 		} else {
 			id, err := cl.ChainID(rpcCtx)
 			if err != nil {
-				// [MED] info-leak: redact URL from error (may contain API key).
 				fmt.Fprintf(out, "  WARN: chainId failed: %s (continuing)\n", log.Redact(err.Error()))
 			} else {
 				fmt.Fprintf(out, "  ✓ chainId=%d\n", id)
 			}
 		}
-		cancel()
 	}
 
 	beacon := ask("L1 Beacon URL (or blank to skip)", "")
 	if beacon != "" && !offline {
 		bcCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
 		bc, err := rpc.NewBeacon(beacon)
 		if err != nil {
-			fmt.Fprintf(out, "  WARN: Beacon URL rejected: %v (continuing)\n", err)
+			// [MED-F1] Redact Beacon URL rejection for same reason.
+			fmt.Fprintf(out, "  WARN: Beacon URL rejected: %s (continuing)\n", log.Redact(err.Error()))
 		} else {
 			gt, err := bc.Genesis(bcCtx)
 			if err != nil {
@@ -117,7 +120,6 @@ func runInit(ctx context.Context, in io.Reader, out io.Writer, baseDir string, o
 				fmt.Fprintf(out, "  ✓ genesis_time=%s\n", gt)
 			}
 		}
-		cancel()
 	}
 
 	profileName := ask("Profile name", "default")
@@ -126,10 +128,24 @@ func runInit(ctx context.Context, in io.Reader, out io.Writer, baseDir string, o
 	}
 
 	stopT := 300
-	if v := ask("Stop timeout seconds", strconv.Itoa(stopT)); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			stopT = n
+	for {
+		v := ask("Stop timeout seconds", strconv.Itoa(stopT))
+		if v == "" {
+			break
 		}
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			fmt.Fprintf(out, "  invalid; enter a positive integer\n")
+			continue
+		}
+		// [MED-F2] enforce MaxStopTimeoutSeconds here so the profile is valid
+		// immediately, rather than failing at runtime with a confusing error.
+		if n > config.MaxStopTimeoutSeconds {
+			fmt.Fprintf(out, "  invalid; maximum allowed is %d seconds\n", config.MaxStopTimeoutSeconds)
+			continue
+		}
+		stopT = n
+		break
 	}
 
 	prof := &config.Profile{

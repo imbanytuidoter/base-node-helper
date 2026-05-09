@@ -8,11 +8,12 @@ import (
 )
 
 // isAbsPath reports whether p is an absolute path on any supported platform.
-// On Unix, /foo is absolute. On Windows, C:\foo is absolute.
-// Root-relative Windows paths like /foo (no drive letter) are NOT considered
-// absolute — they resolve relative to the current drive root, which is
-// unpredictable. filepath.IsAbs handles this correctly on all platforms.
-// We also accept /foo on Windows for profiles authored on Unix (tests, CI).
+//
+// Production deployments run on Linux/macOS where filepath.IsAbs("/foo") = true.
+// On Windows, filepath.IsAbs("/foo") = false (drive-relative), but we
+// additionally accept /foo-prefixed paths to support cross-platform test
+// fixtures and profiles authored on Unix. This is an intentional trade-off:
+// on Windows production deployments operators should use C:\... paths.
 func isAbsPath(p string) bool {
 	return filepath.IsAbs(p) || strings.HasPrefix(p, "/")
 }
@@ -52,13 +53,17 @@ func Validate(p *Profile) error {
 		return fmt.Errorf("base_node_repo contains unclean path components: %q", p.BaseNodeRepo)
 	}
 
-	// [MED] Finding 5: DataDir must also be absolute — a relative DataDir
-	// resolves against the process CWD and could point anywhere at runtime.
+	// [MED] Finding 5+3: DataDir must be absolute AND clean — same standard
+	// as BaseNodeRepo to prevent CWD-relative resolution and path comparison mismatches.
 	if p.DataDir == "" {
 		return fmt.Errorf("data_dir is required")
 	}
 	if !isAbsPath(p.DataDir) {
 		return fmt.Errorf("data_dir must be an absolute path, got %q", p.DataDir)
+	}
+	if filepath.Clean(p.DataDir) != p.DataDir &&
+		filepath.ToSlash(filepath.Clean(p.DataDir)) != filepath.ToSlash(p.DataDir) {
+		return fmt.Errorf("data_dir contains unclean path components: %q", p.DataDir)
 	}
 
 	// [HIGH] integer-overflow: very large values cause time.Duration arithmetic

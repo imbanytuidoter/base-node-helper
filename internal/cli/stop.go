@@ -20,6 +20,12 @@ func newStopCmd() *cobra.Command {
 		Short: "Gracefully stop the Base node (docker compose stop --timeout N)",
 		Long:  "Sends SIGTERM with a long timeout (default 300s, configurable per-profile) to allow Reth/op-node to flush state cleanly. After timeout SIGKILL is sent — which can prolong next-start MDBX recovery.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			// Validate --timeout early (before profile load) for fast feedback.
+			// [MED] large values cause time.Duration overflow → immediate ctx cancel.
+			if timeoutOverride > config.MaxStopTimeoutSeconds {
+				return fmt.Errorf("--timeout %d exceeds maximum allowed %d seconds",
+					timeoutOverride, config.MaxStopTimeoutSeconds)
+			}
 			gf, err := resolveGlobals(cmd)
 			if err != nil {
 				return err
@@ -30,12 +36,6 @@ func newStopCmd() *cobra.Command {
 			}
 			t := cfg.StopTimeoutSeconds
 			if timeoutOverride > 0 {
-				// [MED] Finding 4: --timeout flag must be bounded like the profile field,
-				// otherwise large values cause time.Duration overflow → immediate ctx cancel.
-				if timeoutOverride > config.MaxStopTimeoutSeconds {
-					return fmt.Errorf("--timeout %d exceeds maximum allowed %d seconds",
-						timeoutOverride, config.MaxStopTimeoutSeconds)
-				}
 				t = timeoutOverride
 			}
 			lk, err := lockfile.AcquireExclusive(filepath.Join(gf.BaseDir, ".lock"), 5*time.Second)

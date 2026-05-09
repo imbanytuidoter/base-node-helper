@@ -53,10 +53,8 @@ func runUpgrade(cmd *cobra.Command, restart bool) error {
 	}
 	c := compose.New(inv)
 
+	// t is guaranteed > 0 by Validate() called inside LoadProfile.
 	t := cfg.StopTimeoutSeconds
-	if t == 0 {
-		t = 300
-	}
 
 	if restart {
 		fmt.Fprintf(cmd.OutOrStdout(), "→ docker compose stop --timeout %d\n", t)

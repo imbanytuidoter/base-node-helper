@@ -129,6 +129,11 @@ func SaveProfile(fs afero.Fs, baseDir, name string, p *Profile) error {
 	if !validProfileName.MatchString(name) {
 		return fmt.Errorf("invalid profile name %q: only [a-zA-Z0-9_-] (1-64 chars) allowed", name)
 	}
+	// [LOW-F11] validate content before writing so errors surface immediately
+	// at save time rather than confusingly at start/stop/doctor runtime.
+	if err := Validate(p); err != nil {
+		return fmt.Errorf("invalid profile: %w", err)
+	}
 	path, err := safeProfilePath(baseDir, name)
 	if err != nil {
 		return err
