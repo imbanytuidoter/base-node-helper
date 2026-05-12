@@ -465,6 +465,166 @@
       font-size: 12px;
     }
 
+    /* ── CLAUDE SKILL ───────────────────────────────────────────── */
+    .claude-skill {
+      max-width: 960px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 52px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .skill-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+
+    @media (max-width: 680px) {
+      .skill-inner { grid-template-columns: 1fr; }
+    }
+
+    .skill-left h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .skill-badge {
+      background: #2a1a4e;
+      color: var(--purple);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 10px;
+    }
+
+    .skill-left p {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .skill-invoke {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #0d0d0d;
+      border: 1px solid #2e1a4e;
+      border-radius: 8px;
+      padding: 11px 16px;
+      margin-bottom: 20px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .skill-invoke:hover {
+      border-color: #5b21b6;
+      box-shadow: 0 0 16px rgba(167, 139, 250, 0.12);
+    }
+
+    .skill-prompt {
+      color: var(--purple);
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .skill-invoke code {
+      color: #d8b4fe;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    .skill-features {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .skill-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .skill-feature-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--purple);
+      border-radius: 50%;
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+
+    .skill-right {
+      background: var(--bg-term);
+      border: 1px solid #1a1030;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .skill-right-header {
+      background: #0f0a1e;
+      border-bottom: 1px solid #1a1030;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .skill-right-header span {
+      color: var(--text-mute);
+      font-size: 11px;
+      font-family: var(--font-mono);
+    }
+
+    .skill-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--purple);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    .skill-content {
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .skill-line {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      opacity: 0;
+      animation: slideIn 0.3s ease forwards;
+    }
+
+    .skill-line:nth-child(1)  { animation-delay: 0.05s; }
+    .skill-line:nth-child(2)  { animation-delay: 0.15s; }
+    .skill-line:nth-child(3)  { animation-delay: 0.25s; }
+    .skill-line:nth-child(4)  { animation-delay: 0.35s; }
+    .skill-line:nth-child(5)  { animation-delay: 0.45s; }
+    .skill-line:nth-child(6)  { animation-delay: 0.55s; }
+    .skill-line:nth-child(7)  { animation-delay: 0.65s; }
+    .skill-line:nth-child(8)  { animation-delay: 0.75s; }
+    .skill-line:nth-child(9)  { animation-delay: 0.85s; }
+    .skill-line:nth-child(10) { animation-delay: 0.95s; }
+
+    .skill-line.cmd   { color: var(--purple); }
+    .skill-line.ok    { color: var(--green); }
+    .skill-line.info  { color: var(--blue-lt); }
+    .skill-line.mute  { color: var(--text-mute); }
+    .skill-line.warn  { color: var(--yellow); }
+
     /* ── FOOTER ──────────────────────────────────────────────────── */
     footer {
       display: flex;
@@ -502,6 +662,7 @@
         <a href="#install">Installation</a>
         <a href="#how-it-works">How it works</a>
         <a href="#commands">Commands</a>
+        <a href="#claude-skill">Claude Skill</a>
         <a href="https://github.com/imbanytuidoter/base-node-helper" target="_blank" rel="noopener">GitHub ↗</a>
         <a href="https://x.com/imbanytui" target="_blank" rel="noopener">X ↗</a>
       </div>
@@ -623,6 +784,70 @@
         <code class="cmd red">bnh down</code>
         <span>--force --i-understand (dangerous)</span>
       </div>
+    </div>
+  </section>
+
+  <!-- CLAUDE SKILL -->
+  <section id="claude-skill" class="claude-skill">
+    <div class="section-label reveal">AI-Assisted Development</div>
+    <div class="skill-inner">
+
+      <div class="skill-left reveal">
+        <h2>Claude Code Skill <span class="skill-badge">New</span></h2>
+        <p>
+          One command gives Claude instant context for this entire codebase —
+          architecture, security rules, Azul upgrade dates, dev workflow, test patterns.
+          No re-explaining the project every session.
+        </p>
+
+        <div class="skill-invoke">
+          <span class="skill-prompt">/</span>
+          <code>bnh-developer</code>
+        </div>
+
+        <div class="skill-features">
+          <div class="skill-feature">
+            <div class="skill-feature-dot"></div>
+            <span>Full package map: 9 packages, key file roles</span>
+          </div>
+          <div class="skill-feature">
+            <div class="skill-feature-dot"></div>
+            <span>11 security invariants — Claude won't break them</span>
+          </div>
+          <div class="skill-feature">
+            <div class="skill-feature-dot"></div>
+            <span>Azul upgrade awareness: activation timestamps, migration path</span>
+          </div>
+          <div class="skill-feature">
+            <div class="skill-feature-dot"></div>
+            <span>Step-by-step guides: add preflight check, CLI command, profile field</span>
+          </div>
+          <div class="skill-feature">
+            <div class="skill-feature-dot"></div>
+            <span>CI gate, coverage threshold, release process</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="skill-right reveal">
+        <div class="skill-right-header">
+          <div class="skill-dot"></div>
+          <span>claude-code · /bnh-developer</span>
+        </div>
+        <div class="skill-content">
+          <div class="skill-line cmd">Skill loaded: bnh-developer</div>
+          <div class="skill-line mute">─────────────────────────────</div>
+          <div class="skill-line ok">✓ Package architecture loaded (9 pkgs)</div>
+          <div class="skill-line ok">✓ CLI commands + flags loaded</div>
+          <div class="skill-line ok">✓ Security invariants loaded (11)</div>
+          <div class="skill-line info">  → path validation, SSRF, overflow guards</div>
+          <div class="skill-line info">  → Azul gate, lockfile, --i-understand</div>
+          <div class="skill-line ok">✓ Azul upgrade context loaded</div>
+          <div class="skill-line warn">  ⚠ Mainnet activation: 2026-05-21</div>
+          <div class="skill-line ok">✓ Dev workflow + coverage gate (≥60%)</div>
+        </div>
+      </div>
+
     </div>
   </section>
 
