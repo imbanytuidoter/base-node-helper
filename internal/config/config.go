@@ -22,8 +22,9 @@ const (
 type Client string
 
 const (
-	ClientReth Client = "reth"
-	ClientGeth Client = "geth"
+	ClientReth     Client = "reth"      // legacy EL client — deprecated after Azul
+	ClientGeth     Client = "geth"      // legacy EL client — deprecated after Azul
+	ClientBaseReth Client = "base-reth" // Azul-native EL client (required post-activation)
 )
 
 type Profile struct {

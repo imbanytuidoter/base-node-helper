@@ -31,11 +31,11 @@ func Validate(p *Profile) error {
 		return fmt.Errorf("network %q not in [mainnet, sepolia, devnet]", p.Network)
 	}
 	switch p.Client {
-	case ClientReth, ClientGeth:
+	case ClientReth, ClientGeth, ClientBaseReth:
 	case "":
 		return fmt.Errorf("client is required")
 	default:
-		return fmt.Errorf("client %q not in [reth, geth]", p.Client)
+		return fmt.Errorf("client %q not in [reth, geth, base-reth]", p.Client)
 	}
 
 	// [HIGH] injection: BaseNodeRepo must be a clean absolute path so it
