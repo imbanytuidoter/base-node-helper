@@ -121,6 +121,24 @@ func TestValidateStopTimeoutMaxAccepted(t *testing.T) {
 	}
 }
 
+// --- Client allow-list (Azul upgrade) ---
+
+func TestValidateClientBaseRethAccepted(t *testing.T) {
+	p := baseValidProfile()
+	p.Client = ClientBaseReth
+	if err := Validate(p); err != nil {
+		t.Errorf("base-reth client should be accepted: %v", err)
+	}
+}
+
+func TestValidateClientUnknownRejected(t *testing.T) {
+	p := baseValidProfile()
+	p.Client = "op-reth"
+	if err := Validate(p); err == nil {
+		t.Error("expected error for unknown client 'op-reth'")
+	}
+}
+
 // --- Profile name allow-list (path traversal) ---
 
 func TestValidProfileNames(t *testing.T) {

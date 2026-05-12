@@ -44,6 +44,17 @@ func resolveGlobals(cmd *cobra.Command) (*Globals, error) {
 	return &Globals{BaseDir: d, Profile: profile}, nil
 }
 
+// firstNonEmpty returns the first non-empty string from candidates.
+// Used to prefer BASE_NODE_* env vars over legacy OP_NODE_* with fallback.
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
 func readRepoEnv(repoDir string) (map[string]string, error) {
 	path := filepath.Join(repoDir, ".env")
 	f, err := os.Open(path)
