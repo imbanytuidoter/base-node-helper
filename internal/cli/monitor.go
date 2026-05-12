@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/imbanytuidoter/base-node-helper/internal/azul"
 	"github.com/imbanytuidoter/base-node-helper/internal/compose"
 	"github.com/imbanytuidoter/base-node-helper/internal/config"
 	"github.com/imbanytuidoter/base-node-helper/internal/lockfile"
@@ -51,6 +52,11 @@ func runMonitor(cmd *cobra.Command, interval time.Duration, once bool) error {
 		return err
 	}
 
+	// Azul warning — printed once at monitor start, non-blocking.
+	if ar := azul.Check(cfg.Network, cfg.Client, time.Now()); ar.Status != azul.StatusSafe {
+		fmt.Fprintf(cmd.ErrOrStderr(), "AZUL: %s\n", ar.Message)
+	}
+
 	inv, err := compose.Detect(cmd.Context())
 	if err != nil {
 		return err
@@ -59,13 +65,13 @@ func runMonitor(cmd *cobra.Command, interval time.Duration, once bool) error {
 
 	var l1 *rpc.L1
 	if env, err := readRepoEnv(cfg.BaseNodeRepo); err == nil {
-		if v := env["OP_NODE_L1_ETH_RPC"]; v != "" {
+		// Prefer BASE_NODE_* (post-Azul) over OP_NODE_* (pre-Azul) for backward compat.
+		if v := firstNonEmpty(env["BASE_NODE_L1_ETH_RPC"], env["OP_NODE_L1_ETH_RPC"]); v != "" {
 			var l1Err error
 			l1, l1Err = rpc.NewL1(v)
-			// [MED] Finding 3: omit the raw URL from the message — it may contain
-			// an embedded API key (Alchemy /v2/<key>, Infura /v3/<key> etc.).
+			// Omit the raw URL from the message — it may contain an embedded API key.
 			if l1Err != nil {
-				fmt.Fprintf(cmd.ErrOrStderr(), "warning: invalid OP_NODE_L1_ETH_RPC URL: %v (sync/peer checks disabled)\n", l1Err)
+				fmt.Fprintf(cmd.ErrOrStderr(), "warning: invalid L1 ETH RPC URL: %v (sync/peer checks disabled)\n", l1Err)
 			}
 		}
 	}

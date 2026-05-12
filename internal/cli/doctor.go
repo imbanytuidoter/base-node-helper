@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/imbanytuidoter/base-node-helper/internal/azul"
 	"github.com/imbanytuidoter/base-node-helper/internal/config"
 	"github.com/imbanytuidoter/base-node-helper/internal/lockfile"
 	"github.com/imbanytuidoter/base-node-helper/internal/preflight"
@@ -26,6 +27,13 @@ func newDoctorCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+
+			// Azul check — printed before preflight so it's the first thing seen.
+			ar := azul.Check(cfg.Network, cfg.Client, time.Now())
+			if ar.Status != azul.StatusSafe {
+				fmt.Fprintf(cmd.ErrOrStderr(), "AZUL: %s\n\n", ar.Message)
+			}
+
 			lk, err := lockfile.AcquireShared(filepath.Join(gf.BaseDir, ".lock"), 2*time.Second)
 			if err != nil {
 				return err
@@ -38,6 +46,11 @@ func newDoctorCmd() *cobra.Command {
 			fmt.Fprintf(cmd.OutOrStdout(), "\nWorst status: %s\n", report.Worst())
 			if report.Worst() == preflight.Fail {
 				return fmt.Errorf("at least one preflight check failed")
+			}
+			// Azul Urgent/Blocked → fail doctor even if all other preflight passed.
+			if ar.Status == azul.StatusUrgent || ar.Status == azul.StatusBlocked {
+				return fmt.Errorf("Azul upgrade required: migrate client to base-reth before %s",
+					ar.ActivationTime.Format("2006-01-02"))
 			}
 			return nil
 		},

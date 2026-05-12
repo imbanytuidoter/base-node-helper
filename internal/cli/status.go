@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/imbanytuidoter/base-node-helper/internal/azul"
 	"github.com/imbanytuidoter/base-node-helper/internal/compose"
 	"github.com/imbanytuidoter/base-node-helper/internal/config"
 	"github.com/imbanytuidoter/base-node-helper/internal/lockfile"
@@ -26,6 +27,10 @@ func newStatusCmd() *cobra.Command {
 			cfg, err := config.LoadProfile(afero.NewOsFs(), gf.BaseDir, gf.Profile)
 			if err != nil {
 				return err
+			}
+			// Azul warning — non-blocking, status is display-only.
+			if ar := azul.Check(cfg.Network, cfg.Client, time.Now()); ar.Status != azul.StatusSafe {
+				fmt.Fprintf(cmd.ErrOrStderr(), "AZUL: %s\n", ar.Message)
 			}
 			lk, err := lockfile.AcquireShared(filepath.Join(gf.BaseDir, ".lock"), 2*time.Second)
 			if err != nil {

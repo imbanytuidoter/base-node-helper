@@ -68,11 +68,15 @@ func runInit(ctx context.Context, in io.Reader, out io.Writer, baseDir string, o
 
 	client := ""
 	for {
-		client = ask("Client (reth|geth)", "reth")
-		if client == "reth" || client == "geth" {
+		client = ask("Client (reth|geth|base-reth) [base-reth recommended for Azul]", "base-reth")
+		if client == "reth" || client == "geth" || client == "base-reth" {
 			break
 		}
-		fmt.Fprintln(out, "  invalid; choose reth or geth")
+		fmt.Fprintln(out, "  invalid; choose reth, geth, or base-reth")
+	}
+	if client != "base-reth" {
+		fmt.Fprintf(out, "  NOTE: %q is deprecated after Azul activation (~2026-05-21). "+
+			"Consider migrating to base-reth. See: https://docs.base.org/base-chain/node-operators/base-v1-upgrade\n", client)
 	}
 
 	repo := ask("Path to cloned base/node repo", "")
