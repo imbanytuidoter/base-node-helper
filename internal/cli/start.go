@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/imbanytuidoter/base-node-helper/internal/azul"
 	"github.com/imbanytuidoter/base-node-helper/internal/compose"
 	"github.com/imbanytuidoter/base-node-helper/internal/config"
 	"github.com/imbanytuidoter/base-node-helper/internal/lockfile"
@@ -17,19 +18,22 @@ import (
 
 func newStartCmd() *cobra.Command {
 	var skipPreflight bool
+	var azulOverride bool
 	cmd := &cobra.Command{
 		Use:   "start",
 		Short: "Run preflight checks then start the Base node via docker compose",
 		Long:  "Runs all preflight checks. If any FAIL, refuses to start (override with --skip-preflight). On PASS/WARN, runs `docker compose up -d` against base_node_repo.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runStart(cmd, skipPreflight)
+			return runStart(cmd, skipPreflight, azulOverride)
 		},
 	}
 	cmd.Flags().BoolVar(&skipPreflight, "skip-preflight", false, "skip preflight (DANGEROUS)")
+	cmd.Flags().BoolVar(&azulOverride, "i-understand-azul-risk",
+		false, "allow start on legacy client after Azul activation (DANGEROUS)")
 	return cmd
 }
 
-func runStart(cmd *cobra.Command, skipPreflight bool) error {
+func runStart(cmd *cobra.Command, skipPreflight bool, azulOverride bool) error {
 	gf, err := resolveGlobals(cmd)
 	if err != nil {
 		return err
@@ -37,6 +41,18 @@ func runStart(cmd *cobra.Command, skipPreflight bool) error {
 	cfg, err := config.LoadProfile(afero.NewOsFs(), gf.BaseDir, gf.Profile)
 	if err != nil {
 		return err
+	}
+
+	// Azul upgrade readiness check — runs before preflight for a clear, actionable error.
+	ar := azul.Check(cfg.Network, cfg.Client, time.Now())
+	switch ar.Status {
+	case azul.StatusPreWarning, azul.StatusUrgent:
+		fmt.Fprintf(cmd.ErrOrStderr(), "AZUL: %s\n", ar.Message)
+	case azul.StatusBlocked:
+		if !azulOverride {
+			return fmt.Errorf("AZUL: %s\nTo override (DANGEROUS): add --i-understand-azul-risk", ar.Message)
+		}
+		fmt.Fprintf(cmd.ErrOrStderr(), "AZUL OVERRIDE: proceeding with legacy client after Azul activation\n")
 	}
 
 	lockPath := filepath.Join(gf.BaseDir, ".lock")
@@ -94,10 +110,11 @@ func buildPreflight(cfg *config.Profile) []preflight.Check {
 	})
 	checks = append(checks, preflight.NewNTPCheck())
 	if env, err := readRepoEnv(cfg.BaseNodeRepo); err == nil {
-		if v := env["OP_NODE_L1_ETH_RPC"]; v != "" {
+		// Prefer BASE_NODE_* (post-Azul) over OP_NODE_* (pre-Azul) for backward compat.
+		if v := firstNonEmpty(env["BASE_NODE_L1_ETH_RPC"], env["OP_NODE_L1_ETH_RPC"]); v != "" {
 			checks = append(checks, &preflight.RPCCheck{URL: v, ExpectedChainID: expectedL1ChainID(cfg.Network)})
 		}
-		if v := env["OP_NODE_L1_BEACON"]; v != "" {
+		if v := firstNonEmpty(env["BASE_NODE_L1_BEACON"], env["OP_NODE_L1_BEACON"]); v != "" {
 			checks = append(checks, &preflight.BeaconCheck{URL: v})
 		}
 	}
