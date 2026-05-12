@@ -164,6 +164,35 @@ func TestMustAbsDirAcceptsAbsolute(t *testing.T) {
 	}
 }
 
+func TestFirstNonEmpty(t *testing.T) {
+	if got := firstNonEmpty("a", "b"); got != "a" {
+		t.Errorf("got %q, want 'a'", got)
+	}
+	if got := firstNonEmpty("", "b"); got != "b" {
+		t.Errorf("got %q, want 'b'", got)
+	}
+	if got := firstNonEmpty("", ""); got != "" {
+		t.Errorf("got %q, want ''", got)
+	}
+	if got := firstNonEmpty(); got != "" {
+		t.Errorf("no-args: got %q, want ''", got)
+	}
+	// BASE_NODE_* takes priority over OP_NODE_* when both set
+	env := map[string]string{
+		"BASE_NODE_L1_ETH_RPC": "https://base-rpc.example.com",
+		"OP_NODE_L1_ETH_RPC":   "https://op-rpc.example.com",
+	}
+	got := firstNonEmpty(env["BASE_NODE_L1_ETH_RPC"], env["OP_NODE_L1_ETH_RPC"])
+	if got != "https://base-rpc.example.com" {
+		t.Errorf("got %q, want base-rpc URL", got)
+	}
+	// Falls back to OP_NODE_* when BASE_NODE_* absent
+	got = firstNonEmpty(env["BASE_NODE_L1_BEACON"], env["OP_NODE_L1_ETH_RPC"])
+	if got != "https://op-rpc.example.com" {
+		t.Errorf("fallback: got %q, want op-rpc URL", got)
+	}
+}
+
 func TestBuildPreflightIncludesOptionals(t *testing.T) {
 	dir := t.TempDir()
 	cfg := &config.Profile{
